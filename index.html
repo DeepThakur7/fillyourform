@@ -26,7 +26,10 @@
     .center { text-align: center; }
     .hidden { display: none; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-  </style>
+  
+.admin-only { display: none !important; }
+.admin-mode .admin-only { display: block !important; }
+</style>
 </head>
 <body>
   <div class="card">
@@ -37,7 +40,7 @@
       <button id="openFormBtn" class="hidden">Open Form</button>
     </div>
     <div class="divider"></div>
-    <details>
+    <details class="admin-only">
       <summary><strong>View current configuration</strong></summary>
       <div class="row">
         <div><label>Form URL</label><div id="cfgUrl" class="small"></div></div>
@@ -310,6 +313,20 @@
   // Init
   refreshCfgView();
   checkLocationAndGate();
+
+// Admin visibility toggle
+(function(){
+  const PASS='YOUR-SECRET-PASSPHRASE';
+  function setAdminMode(on){document.body.classList.toggle('admin-mode',!!on);}
+  document.addEventListener('DOMContentLoaded',()=>{
+    const unlockBtn=document.getElementById('unlockAdmin');
+    const lockBtn=document.getElementById('lockAdmin');
+    const passInput=document.getElementById('adminPass');
+    if(unlockBtn){unlockBtn.addEventListener('click',e=>{e.preventDefault();if(passInput.value.trim()===PASS){setAdminMode(true);}else{alert('Invalid passphrase');}});}
+    if(lockBtn){lockBtn.addEventListener('click',e=>{e.preventDefault();setAdminMode(false);});}
+    if(new URLSearchParams(location.search).get('admin')==='1'){setAdminMode(true);}
+  });
+})();
 </script>
 </body>
 </html>
