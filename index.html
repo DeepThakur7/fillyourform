@@ -1,0 +1,126 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Responsive Location-based Microsoft Form Access</title>
+<style>
+  :root { --bg:#0f172a; --card:#111827; --text:#e5e7eb; --muted:#9ca3af; --accent:#2563eb; --accent-2:#1d4ed8; --border:#1f2937; --ok:#16a34a; }
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans";}
+  .container{max-width:960px;margin:auto;padding:16px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin:12px 0;}
+  h1,h2,h3{margin-bottom:12px;}
+  .btn{display:inline-flex;justify-content:center;align-items:center;padding:10px 14px;border-radius:8px;color:#fff;background:var(--accent);border:1px solid #1e40af;text-decoration:none;font-weight:600;cursor:pointer;width:100%;box-sizing:border-box;}
+  .btn:hover{background:var(--accent-2);} 
+  .btn.secondary{background:transparent;color:var(--text);border-color:var(--border);} 
+  .btn.disabled{background:gray !important;pointer-events:none;}
+  label{font-weight:600;display:block;margin-bottom:6px;} 
+  input,textarea{width:100%;padding:10px;background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:6px;box-sizing:border-box;}
+  .note{font-size:0.9rem;color:var(--muted);} 
+  .status{font-size:0.95rem;color:var(--muted);} 
+  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;} 
+  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;} 
+  @media(max-width:768px){
+    .grid-2,.grid-3{grid-template-columns:1fr;} 
+    .btn{width:100%;margin-top:8px;} 
+  }
+  .admin-only{display:none!important;} 
+  .admin-mode .admin-only{display:block!important;} 
+</style>
+</head>
+<body>
+<div class="container">
+  <header class="card">
+    <h1>Location-based Microsoft Form Access</h1>
+    <p id="geo-status" class="status">Checking your location…</p>
+  </header>
+
+  <section class="card">
+    <a id="open-form-btn" class="btn disabled" href="#" target="_blank">Open Form (locked)</a>
+    <p class="note">Form unlocks only when inside configured geofence.</p>
+  </section>
+
+  <section class="card">
+    <h2>Admin Access</h2>
+    <div class="grid-2">
+      <div>
+        <label for="admin-passphrase">Passphrase</label>
+        <input type="password" id="admin-passphrase" placeholder="Enter passphrase" />
+      </div>
+      <div style="align-self:end;">
+        <button id="unlock-admin-btn" class="btn">Unlock Admin</button>
+        <button id="lock-admin-btn" class="btn secondary">Lock Admin</button>
+      </div>
+    </div>
+    <p class="note">Append ?admin=1 to URL for quick access.</p>
+  </section>
+
+  <section class="card admin-only">
+    <h2>Current Configuration</h2>
+    <div class="grid-2">
+      <div><label>Form URL</label><div id="cfg-form-url" class="note">—</div></div>
+      <div><label>Radius</label><div id="cfg-radius" class="note">—</div></div>
+      <div><label>Latitude</label><div id="cfg-lat" class="note">—</div></div>
+      <div><label>Longitude</label><div id="cfg-lng" class="note">—</div></div>
+    </div>
+  </section>
+
+  <section class="card admin-only">
+    <h3>Your Coordinates</h3>
+    <p id="coords-status" class="status">Requesting location…</p>
+    <div class="grid-3">
+      <div><label>Lat</label><div id="cur-lat" class="note">—</div></div>
+      <div><label>Lng</label><div id="cur-lng" class="note">—</div></div>
+      <div><label>Accuracy</label><div id="cur-acc" class="note">—</div></div>
+    </div>
+    <p class="note">Last update: <span id="cur-ts">—</span></p>
+    <button id="use-current-btn" class="btn">Use current coordinates</button>
+  </section>
+
+  <section class="card admin-only">
+    <h3>Target Configuration</h3>
+    <div class="grid-2">
+      <div><label>Form URL</label><input id="form-url" type="url" placeholder="https://forms.office.com/..." /></div>
+      <div><label>Radius (m)</label><input id="target-radius" type="number" /></div>
+      <div><label>Latitude</label><input id="target-lat" type="number" step="0.000001" /></div>
+      <div><label>Longitude</label><input id="target-lng" type="number" step="0.000001" /></div>
+    </div>
+    <button id="save-config-btn" class="btn">Save Configuration</button>
+  </section>
+</div>
+
+<script>
+const PASS='CHANGE-ME-123';
+function setAdminMode(on){document.body.classList.toggle('admin-mode',!!on);}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const unlockBtn=document.getElementById('unlock-admin-btn');
+  const lockBtn=document.getElementById('lock-admin-btn');
+  const passInput=document.getElementById('admin-passphrase');
+  if(unlockBtn){unlockBtn.addEventListener('click',e=>{e.preventDefault();if(passInput.value.trim()===PASS){setAdminMode(true);}else{alert('Invalid passphrase');}});}
+  if(lockBtn){lockBtn.addEventListener('click',e=>{e.preventDefault();setAdminMode(false);});}
+  if(new URLSearchParams(location.search).get('admin')==='1'){setAdminMode(true);}
+});
+
+const STORE_KEY='training-record-config';
+function readConfig(){try{const raw=localStorage.getItem(STORE_KEY);return raw?JSON.parse(raw):null;}catch{return null;}}
+function writeConfig(cfg){localStorage.setItem(STORE_KEY,JSON.stringify(cfg));renderConfigSummary(cfg);updateOpenFormButton(cfg);}
+function renderConfigSummary(cfg){document.getElementById('cfg-form-url').textContent=cfg.formUrl||'—';document.getElementById('cfg-radius').textContent=cfg.radius||'—';document.getElementById('cfg-lat').textContent=cfg.lat||'—';document.getElementById('cfg-lng').textContent=cfg.lng||'—';}
+function updateOpenFormButton(cfg){const btn=document.getElementById('open-form-btn');btn.href=cfg.formUrl||'#';}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  const cfg=readConfig()||{formUrl:'',radius:'',lat:'',lng:''};renderConfigSummary(cfg);updateOpenFormButton(cfg);
+  document.getElementById('form-url').value=cfg.formUrl;document.getElementById('target-radius').value=cfg.radius;document.getElementById('target-lat').value=cfg.lat;document.getElementById('target-lng').value=cfg.lng;
+  document.getElementById('save-config-btn').addEventListener('click',e=>{e.preventDefault();const newCfg={formUrl:document.getElementById('form-url').value.trim(),radius:Number(document.getElementById('target-radius').value),lat:Number(document.getElementById('target-lat').value),lng:Number(document.getElementById('target-lng').value)};writeConfig(newCfg);alert('Configuration saved.');});
+});
+
+function haversineMeters(lat1,lon1,lat2,lon2){const R=6371000;const toRad=d=>d*Math.PI/180;const dLat=toRad(lat2-lat1);const dLon=toRad(lon2-lon1);const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;const c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));return R*c;}
+function setGeoStatus(text,ok=false){const el=document.getElementById('geo-status');el.textContent=text;el.style.color=ok?'var(--ok)':'var(--muted)';}
+function checkGeofence(){const cfg=readConfig();const btn=document.getElementById('open-form-btn');if(!cfg||!cfg.lat||!cfg.lng||!cfg.radius||!cfg.formUrl){setGeoStatus('No target configured.');btn.classList.add('disabled');return;}if(!('geolocation'in navigator)){setGeoStatus('Geolocation not available');btn.classList.add('disabled');return;}navigator.geolocation.getCurrentPosition(pos=>{const{latitude,longitude}=pos.coords;const d=haversineMeters(latitude,longitude,cfg.lat,cfg.lng);if(d<=cfg.radius){btn.classList.remove('disabled');btn.textContent='Open Form';setGeoStatus(`Within ${Math.round(d)} m`,true);}else{btn.classList.add('disabled');btn.textContent='Open Form (locked)';setGeoStatus(`Outside geofence (~${Math.round(d)} m)`,false);}},err=>{setGeoStatus('Location error');btn.classList.add('disabled');},{enableHighAccuracy:true,timeout:10000});}
+document.addEventListener('DOMContentLoaded',checkGeofence);
+
+document.getElementById('use-current-btn').addEventListener('click',e=>{e.preventDefault();if(!('geolocation'in navigator)){alert('Geolocation not available');return;}navigator.geolocation.getCurrentPosition(pos=>{const{latitude,longitude,accuracy}=pos.coords;document.getElementById('cur-lat').textContent=latitude.toFixed(6);document.getElementById('cur-lng').textContent=longitude.toFixed(6);document.getElementById('cur-acc').textContent=Math.round(accuracy);document.getElementById('cur-ts').textContent=new Date().toLocaleString();document.getElementById('target-lat').value=latitude.toFixed(6);document.getElementById('target-lng').value=longitude.toFixed(6);if(!document.getElementById('target-radius').value){document.getElementById('target-radius').value=Math.max(Math.round(accuracy),50);}},err=>{document.getElementById('coords-status').textContent='Unable to read coordinates';},{enableHighAccuracy:true,timeout:10000});});
+</script>
+</body>
+</html>
