@@ -315,18 +315,6 @@
   checkLocationAndGate();
 
 // Admin visibility toggle
-(function(){
-  const PASS='YOUR-SECRET-PASSPHRASE';
-  function setAdminMode(on){document.body.classList.toggle('admin-mode',!!on);}
-  document.addEventListener('DOMContentLoaded',()=>{
-    const unlockBtn=document.getElementById('unlockAdmin');
-    const lockBtn=document.getElementById('lockAdmin');
-    const passInput=document.getElementById('adminPass');
-    if(unlockBtn){unlockBtn.addEventListener('click',e=>{e.preventDefault();if(passInput.value.trim()===PASS){setAdminMode(true);}else{alert('Invalid passphrase');}});}
-    if(lockBtn){lockBtn.addEventListener('click',e=>{e.preventDefault();setAdminMode(false);});}
-    if(new URLSearchParams(location.search).get('admin')==='1'){setAdminMode(true);}
-  });
-})();
 </script>
 </body>
 </html>
