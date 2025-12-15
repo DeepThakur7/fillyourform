@@ -1,126 +1,315 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Responsive Location-based Microsoft Form Access</title>
-<style>
-  :root { --bg:#0f172a; --card:#111827; --text:#e5e7eb; --muted:#9ca3af; --accent:#2563eb; --accent-2:#1d4ed8; --border:#1f2937; --ok:#16a34a; }
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Noto Sans";}
-  .container{max-width:960px;margin:auto;padding:16px;}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;margin:12px 0;}
-  h1,h2,h3{margin-bottom:12px;}
-  .btn{display:inline-flex;justify-content:center;align-items:center;padding:10px 14px;border-radius:8px;color:#fff;background:var(--accent);border:1px solid #1e40af;text-decoration:none;font-weight:600;cursor:pointer;width:100%;box-sizing:border-box;}
-  .btn:hover{background:var(--accent-2);} 
-  .btn.secondary{background:transparent;color:var(--text);border-color:var(--border);} 
-  .btn.disabled{background:gray !important;pointer-events:none;}
-  label{font-weight:600;display:block;margin-bottom:6px;} 
-  input,textarea{width:100%;padding:10px;background:#0b1220;color:var(--text);border:1px solid var(--border);border-radius:6px;box-sizing:border-box;}
-  .note{font-size:0.9rem;color:var(--muted);} 
-  .status{font-size:0.95rem;color:var(--muted);} 
-  .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;} 
-  .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;} 
-  @media(max-width:768px){
-    .grid-2,.grid-3{grid-template-columns:1fr;} 
-    .btn{width:100%;margin-top:8px;} 
-  }
-  .admin-only{display:none!important;} 
-  .admin-mode .admin-only{display:block!important;} 
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Location-based Microsoft Form</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 2rem; line-height: 1.5; background: #f7f7f9; color: #111; }
+    .card { max-width: 900px; margin: 0 auto 1rem; padding: 1.25rem; background: #fff; border: 1px solid #ddd; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    h1, h2 { margin: 0 0 0.75rem; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .row-1 { display: grid; grid-template-columns: 1fr; gap: 0.75rem; }
+    label { font-weight: 600; }
+    input[type="text"], input[type="number"], input[type="password"], input[type="url"] { width: 100%; padding: 0.6rem; border: 1px solid #ccc; border-radius: 8px; font-size: 0.95rem; background: #fff; }
+    button { padding: 0.65rem 1rem; border: 1px solid #1b6ef3; background: #1b6ef3; color: #fff; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    button.secondary { background: #fff; color: #1b6ef3; }
+    button:disabled { opacity: 0.6; cursor: not-allowed; }
+    .muted { color: #555; font-size: 0.9rem; }
+    .status { padding: 0.6rem; border-radius: 8px; background: #f0f3ff; border: 1px dashed #bcd; }
+    .ok { background: #e7f6ec; border-color: #bfe3cc; }
+    .warn { background: #fff4e5; border-color: #ffd59f; }
+    .err { background: #fdecea; border-color: #f5c2c0; }
+    .divider { height: 1px; background: #e5e7eb; margin: 1rem 0; }
+    .small { font-size: 0.85rem; }
+    .center { text-align: center; }
+    .hidden { display: none; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
 </head>
 <body>
-<div class="container">
-  <header class="card">
+  <div class="card">
     <h1>Location-based Microsoft Form Access</h1>
-    <p id="geo-status" class="status">Checking your location…</p>
-  </header>
-
-  <section class="card">
-    <a id="open-form-btn" class="btn disabled" href="#" target="_blank">Open Form (locked)</a>
-    <p class="note">Form unlocks only when inside configured geofence.</p>
-  </section>
-
-  <section class="card">
-    <h2>Admin Access</h2>
-    <div class="grid-2">
-      <div>
-        <label for="admin-passphrase">Passphrase</label>
-        <input type="password" id="admin-passphrase" placeholder="Enter passphrase" />
+    <p class="muted">This page shows a Form button only when you are within the configured location and radius.</p>
+    <div id="userStatus" class="status warn">Checking your location…</div>
+    <div class="center" style="margin-top: 1rem;">
+      <button id="openFormBtn" class="hidden">Open Form</button>
+    </div>
+    <div class="divider"></div>
+    <details>
+      <summary><strong>View current configuration</strong></summary>
+      <div class="row">
+        <div><label>Form URL</label><div id="cfgUrl" class="small"></div></div>
+        <div><label>Radius (meters)</label><div id="cfgRadius" class="small"></div></div>
+        <div><label>Latitude</label><div id="cfgLat" class="small mono"></div></div>
+        <div><label>Longitude</label><div id="cfgLng" class="small mono"></div></div>
       </div>
-      <div style="align-self:end;">
-        <button id="unlock-admin-btn" class="btn">Unlock Admin</button>
-        <button id="lock-admin-btn" class="btn secondary">Lock Admin</button>
+    </details>
+  </div>
+
+  <div class="card">
+    <h2>Admin Panel</h2>
+    <p class="muted">Admin-only: update the Form URL and geofence. After login, your <strong>current coordinates</strong> will be shown and can be applied to the target with one click.</p>
+
+    <div id="adminGate">
+      <label for="adminPass">Admin passphrase</label>
+      <input type="password" id="adminPass" placeholder="Enter admin passphrase" />
+      <div style="margin-top:0.5rem;">
+        <button id="unlockAdmin">Unlock Admin</button>
       </div>
+      <p class="small muted" style="margin-top:0.5rem;">Tip: Prefer hosting behind authenticated pages (SharePoint/Azure Static Web Apps) for stronger security.</p>
     </div>
-    <p class="note">Append ?admin=1 to URL for quick access.</p>
-  </section>
 
-  <section class="card admin-only">
-    <h2>Current Configuration</h2>
-    <div class="grid-2">
-      <div><label>Form URL</label><div id="cfg-form-url" class="note">—</div></div>
-      <div><label>Radius</label><div id="cfg-radius" class="note">—</div></div>
-      <div><label>Latitude</label><div id="cfg-lat" class="note">—</div></div>
-      <div><label>Longitude</label><div id="cfg-lng" class="note">—</div></div>
-    </div>
-  </section>
+    <form id="adminForm" class="hidden" autocomplete="off">
+      <div class="status warn hidden" id="geoHint">Requesting your current coordinates…</div>
 
-  <section class="card admin-only">
-    <h3>Your Coordinates</h3>
-    <p id="coords-status" class="status">Requesting location…</p>
-    <div class="grid-3">
-      <div><label>Lat</label><div id="cur-lat" class="note">—</div></div>
-      <div><label>Lng</label><div id="cur-lng" class="note">—</div></div>
-      <div><label>Accuracy</label><div id="cur-acc" class="note">—</div></div>
-    </div>
-    <p class="note">Last update: <span id="cur-ts">—</span></p>
-    <button id="use-current-btn" class="btn">Use current coordinates</button>
-  </section>
+      <div class="row">
+        <div>
+          <label>Your current latitude</label>
+          <div id="currentLat" class="mono small">—</div>
+        </div>
+        <div>
+          <label>Your current longitude</label>
+          <div id="currentLng" class="mono small">—</div>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Accuracy (± meters)</label>
+          <div id="currentAcc" class="mono small">—</div>
+        </div>
+        <div>
+          <label>Last update</label>
+          <div id="currentTime" class="mono small">—</div>
+        </div>
+      </div>
+      <div style="margin:0.5rem 0 1rem;">
+        <button type="button" id="useCurrent" class="secondary">Use current coordinates as target</button>
+      </div>
 
-  <section class="card admin-only">
-    <h3>Target Configuration</h3>
-    <div class="grid-2">
-      <div><label>Form URL</label><input id="form-url" type="url" placeholder="https://forms.office.com/..." /></div>
-      <div><label>Radius (m)</label><input id="target-radius" type="number" /></div>
-      <div><label>Latitude</label><input id="target-lat" type="number" step="0.000001" /></div>
-      <div><label>Longitude</label><input id="target-lng" type="number" step="0.000001" /></div>
-    </div>
-    <button id="save-config-btn" class="btn">Save Configuration</button>
-  </section>
-</div>
+      <div class="row-1">
+        <div>
+          <label for="formUrl">Microsoft Form URL</label>
+          <input type="url" id="formUrl" placeholder="https://forms.office.com/..." required />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="targetLat">Target Latitude</label>
+          <input type="number" id="targetLat" step="0.000001" placeholder="e.g., 17.455" required />
+        </div>
+        <div>
+          <label for="targetLng">Target Longitude</label>
+          <input type="number" id="targetLng" step="0.000001" placeholder="e.g., 78.267" required />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="radiusMeters">Radius (meters)</label>
+          <input type="number" id="radiusMeters" step="1" min="1" placeholder="e.g., 200" required />
+        </div>
+        <div>
+          <label for="adminNote">Optional note</label>
+          <input type="text" id="adminNote" placeholder="Visible to all users" />
+        </div>
+      </div>
+      <div style="margin-top:0.75rem;">
+        <button type="submit">Save Configuration</button>
+        <button type="button" id="lockAdmin" class="secondary">Lock Admin</button>
+      </div>
+      <div id="adminStatus" class="status hidden" style="margin-top:0.75rem;"></div>
+    </form>
+  </div>
 
 <script>
-const PASS='Thcm@12345';
-function setAdminMode(on){document.body.classList.toggle('admin-mode',!!on);}
+  // -------- Configuration --------
+  const DEFAULTS = {
+    formUrl: 'https://forms.office.com/Pages/ResponsePage.aspx?id=yXdC9f7aqkSFpHPVx8UkUBDlBp6oi0hGjvqBqX5Zo59UNTJEUzRYTTRRT0dGTDNRS1ZQWjRCNFpQWS4u',
+    targetLat: 22.366718,
+    targetLng: 87.359624,
+    radiusMeters: 100,
+    adminNote: 'Configured geofence for office location.'
+  };
+  const ADMIN_PASSPHRASE = 'THCM@12345'; // TODO: change
+  const storageKey = 'geoFormConfig.v1';
+  const adminFlagKey = 'geoFormAdminUnlocked';
 
-document.addEventListener('DOMContentLoaded',()=>{
-  const unlockBtn=document.getElementById('unlock-admin-btn');
-  const lockBtn=document.getElementById('lock-admin-btn');
-  const passInput=document.getElementById('admin-passphrase');
-  if(unlockBtn){unlockBtn.addEventListener('click',e=>{e.preventDefault();if(passInput.value.trim()===PASS){setAdminMode(true);}else{alert('Invalid passphrase');}});}
-  if(lockBtn){lockBtn.addEventListener('click',e=>{e.preventDefault();setAdminMode(false);});}
-  if(new URLSearchParams(location.search).get('admin')==='1'){setAdminMode(true);}
-});
+  function loadConfig() {
+    try { const raw = localStorage.getItem(storageKey); if (!raw) return { ...DEFAULTS }; const parsed = JSON.parse(raw); return {
+      formUrl: parsed.formUrl || DEFAULTS.formUrl,
+      targetLat: Number(parsed.targetLat ?? DEFAULTS.targetLat),
+      targetLng: Number(parsed.targetLng ?? DEFAULTS.targetLng),
+      radiusMeters: Number(parsed.radiusMeters ?? DEFAULTS.radiusMeters),
+      adminNote: parsed.adminNote || DEFAULTS.adminNote
+    }; } catch (e) { console.warn('Failed to parse config', e); return { ...DEFAULTS }; }
+  }
+  function saveConfig(cfg) { localStorage.setItem(storageKey, JSON.stringify(cfg)); }
+  function setStatus(el, text, mode = 'info') { el.textContent = text; el.classList.remove('ok','warn','err','hidden'); if (mode==='ok') el.classList.add('ok'); else if (mode==='warn') el.classList.add('warn'); else if (mode==='err') el.classList.add('err'); }
+  function haversineDistanceMeters(lat1, lon1, lat2, lon2) {
+    const R = 6371000; const toRad = d=>d*Math.PI/180; const dLat = toRad(lat2-lat1); const dLon = toRad(lon2-lon1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2; const c = 2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); return R*c;
+  }
 
-const STORE_KEY='training-record-config';
-function readConfig(){try{const raw=localStorage.getItem(STORE_KEY);return raw?JSON.parse(raw):null;}catch{return null;}}
-function writeConfig(cfg){localStorage.setItem(STORE_KEY,JSON.stringify(cfg));renderConfigSummary(cfg);updateOpenFormButton(cfg);}
-function renderConfigSummary(cfg){document.getElementById('cfg-form-url').textContent=cfg.formUrl||'—';document.getElementById('cfg-radius').textContent=cfg.radius||'—';document.getElementById('cfg-lat').textContent=cfg.lat||'—';document.getElementById('cfg-lng').textContent=cfg.lng||'—';}
-function updateOpenFormButton(cfg){const btn=document.getElementById('open-form-btn');btn.href=cfg.formUrl||'#';}
+  // -------- DOM --------
+  const userStatus = document.getElementById('userStatus');
+  const openFormBtn = document.getElementById('openFormBtn');
+  const cfgUrl = document.getElementById('cfgUrl');
+  const cfgRadius = document.getElementById('cfgRadius');
+  const cfgLat = document.getElementById('cfgLat');
+  const cfgLng = document.getElementById('cfgLng');
 
-document.addEventListener('DOMContentLoaded',()=>{
-  const cfg=readConfig()||{formUrl:'',radius:'',lat:'',lng:''};renderConfigSummary(cfg);updateOpenFormButton(cfg);
-  document.getElementById('form-url').value=cfg.formUrl;document.getElementById('target-radius').value=cfg.radius;document.getElementById('target-lat').value=cfg.lat;document.getElementById('target-lng').value=cfg.lng;
-  document.getElementById('save-config-btn').addEventListener('click',e=>{e.preventDefault();const newCfg={formUrl:document.getElementById('form-url').value.trim(),radius:Number(document.getElementById('target-radius').value),lat:Number(document.getElementById('target-lat').value),lng:Number(document.getElementById('target-lng').value)};writeConfig(newCfg);alert('Configuration saved.');});
-});
+  const adminGate = document.getElementById('adminGate');
+  const adminForm = document.getElementById('adminForm');
+  const unlockAdmin = document.getElementById('unlockAdmin');
+  const adminPass = document.getElementById('adminPass');
+  const adminStatus = document.getElementById('adminStatus');
+  const lockAdmin = document.getElementById('lockAdmin');
 
-function haversineMeters(lat1,lon1,lat2,lon2){const R=6371000;const toRad=d=>d*Math.PI/180;const dLat=toRad(lat2-lat1);const dLon=toRad(lon2-lon1);const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;const c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));return R*c;}
-function setGeoStatus(text,ok=false){const el=document.getElementById('geo-status');el.textContent=text;el.style.color=ok?'var(--ok)':'var(--muted)';}
-function checkGeofence(){const cfg=readConfig();const btn=document.getElementById('open-form-btn');if(!cfg||!cfg.lat||!cfg.lng||!cfg.radius||!cfg.formUrl){setGeoStatus('No target configured.');btn.classList.add('disabled');return;}if(!('geolocation'in navigator)){setGeoStatus('Geolocation not available');btn.classList.add('disabled');return;}navigator.geolocation.getCurrentPosition(pos=>{const{latitude,longitude}=pos.coords;const d=haversineMeters(latitude,longitude,cfg.lat,cfg.lng);if(d<=cfg.radius){btn.classList.remove('disabled');btn.textContent='Open Form';setGeoStatus(`Within ${Math.round(d)} m`,true);}else{btn.classList.add('disabled');btn.textContent='Open Form (locked)';setGeoStatus(`Outside geofence (~${Math.round(d)} m)`,false);}},err=>{setGeoStatus('Location error');btn.classList.add('disabled');},{enableHighAccuracy:true,timeout:10000});}
-document.addEventListener('DOMContentLoaded',checkGeofence);
+  const formUrlInput = document.getElementById('formUrl');
+  const targetLatInput = document.getElementById('targetLat');
+  const targetLngInput = document.getElementById('targetLng');
+  const radiusMetersInput = document.getElementById('radiusMeters');
+  const adminNoteInput = document.getElementById('adminNote');
 
-document.getElementById('use-current-btn').addEventListener('click',e=>{e.preventDefault();if(!('geolocation'in navigator)){alert('Geolocation not available');return;}navigator.geolocation.getCurrentPosition(pos=>{const{latitude,longitude,accuracy}=pos.coords;document.getElementById('cur-lat').textContent=latitude.toFixed(6);document.getElementById('cur-lng').textContent=longitude.toFixed(6);document.getElementById('cur-acc').textContent=Math.round(accuracy);document.getElementById('cur-ts').textContent=new Date().toLocaleString();document.getElementById('target-lat').value=latitude.toFixed(6);document.getElementById('target-lng').value=longitude.toFixed(6);if(!document.getElementById('target-radius').value){document.getElementById('target-radius').value=Math.max(Math.round(accuracy),50);}},err=>{document.getElementById('coords-status').textContent='Unable to read coordinates';},{enableHighAccuracy:true,timeout:10000});});
+  const geoHint = document.getElementById('geoHint');
+  const currentLat = document.getElementById('currentLat');
+  const currentLng = document.getElementById('currentLng');
+  const currentAcc = document.getElementById('currentAcc');
+  const currentTime = document.getElementById('currentTime');
+  const useCurrentBtn = document.getElementById('useCurrent');
+
+  let cfg = loadConfig();
+  let watchId = null; // geolocation watch
+  let lastCoords = null;
+
+  function refreshCfgView() {
+    cfg = loadConfig();
+    cfgUrl.textContent = cfg.formUrl;
+    cfgRadius.textContent = `${cfg.radiusMeters} m`;
+    cfgLat.textContent = cfg.targetLat;
+    cfgLng.textContent = cfg.targetLng;
+    formUrlInput.value = cfg.formUrl;
+    targetLatInput.value = cfg.targetLat;
+    targetLngInput.value = cfg.targetLng;
+    radiusMetersInput.value = cfg.radiusMeters;
+    adminNoteInput.value = cfg.adminNote;
+  }
+
+  function checkLocationAndGate() {
+    if (!('geolocation' in navigator)) { setStatus(userStatus, 'Geolocation is not supported by your browser.', 'err'); return; }
+    setStatus(userStatus, 'Requesting permission to access your location…', 'warn');
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy } = pos.coords;
+        const dist = haversineDistanceMeters(latitude, longitude, cfg.targetLat, cfg.targetLng);
+        const within = dist <= cfg.radiusMeters;
+        if (within) { setStatus(userStatus, `You are within ${Math.round(dist)} m of the target (accuracy ±${Math.round(accuracy)} m). ${cfg.adminNote ? 'Note: '+cfg.adminNote : ''}`, 'ok'); openFormBtn.classList.remove('hidden'); }
+        else { setStatus(userStatus, `You are ${Math.round(dist)} m away (accuracy ±${Math.round(accuracy)} m). Access allowed only within ${cfg.radiusMeters} m.`, 'warn'); openFormBtn.classList.add('hidden'); }
+      },
+      (err) => { const map = {1:'Permission denied. Please allow location access to proceed.',2:'Position unavailable. Try moving to an open area or check GPS.',3:'Timeout while getting location. Please try again.'}; setStatus(userStatus, map[err.code] || `Error: ${err.message}`, 'err'); openFormBtn.classList.add('hidden'); },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+  }
+
+  openFormBtn.addEventListener('click', () => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { const dist = haversineDistanceMeters(pos.coords.latitude, pos.coords.longitude, cfg.targetLat, cfg.targetLng); if (dist <= cfg.radiusMeters) { window.open(cfg.formUrl, '_blank', 'noopener'); } else { alert(`You are ${Math.round(dist)} m away. Access allowed only within ${cfg.radiusMeters} m.`); } },
+      () => window.open(cfg.formUrl, '_blank', 'noopener')
+    );
+  });
+
+  // Admin unlock: show live coordinates for admin
+  unlockAdmin.addEventListener('click', () => {
+    const pass = adminPass.value.trim();
+    if (pass && pass === ADMIN_PASSPHRASE) {
+      localStorage.setItem(adminFlagKey, '1');
+      adminGate.classList.add('hidden');
+      adminForm.classList.remove('hidden');
+      setStatus(adminStatus, 'Admin unlocked.', 'ok');
+      refreshCfgView();
+
+      if (!('geolocation' in navigator)) {
+        setStatus(geoHint, 'Geolocation not supported in this browser.', 'err');
+      } else {
+        setStatus(geoHint, 'Requesting your current coordinates…', 'warn');
+        try {
+          watchId = navigator.geolocation.watchPosition(
+            (pos) => {
+              const { latitude, longitude, accuracy } = pos.coords;
+              lastCoords = { latitude, longitude, accuracy };
+              currentLat.textContent = latitude.toFixed(6);
+              currentLng.textContent = longitude.toFixed(6);
+              currentAcc.textContent = Math.round(accuracy);
+              currentTime.textContent = new Date().toLocaleString();
+              setStatus(geoHint, 'Live coordinates received.', 'ok');
+            },
+            (err) => {
+              const map = {1:'Permission denied for live coordinates.',2:'Position unavailable.',3:'Timeout while watching position.'};
+              setStatus(geoHint, map[err.code] || `Error: ${err.message}`, 'err');
+            },
+            { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+          );
+        } catch (e) {
+          setStatus(geoHint, 'Failed to start coordinate watch: ' + e.message, 'err');
+        }
+      }
+    } else {
+      setStatus(adminStatus, 'Incorrect passphrase.', 'err');
+    }
+  });
+
+  // Use current coordinates as target
+  useCurrentBtn.addEventListener('click', () => {
+    if (lastCoords) {
+      targetLatInput.value = lastCoords.latitude.toFixed(6);
+      targetLngInput.value = lastCoords.longitude.toFixed(6);
+    } else {
+      alert('Current coordinates not available yet. Please allow location access.');
+    }
+  });
+
+  // Admin lock
+  lockAdmin.addEventListener('click', () => {
+    localStorage.removeItem(adminFlagKey);
+    adminForm.classList.add('hidden');
+    adminGate.classList.remove('hidden');
+    adminPass.value = '';
+    setStatus(adminStatus, 'Admin locked.', 'warn');
+    if (watchId !== null) { navigator.geolocation.clearWatch(watchId); watchId = null; }
+  });
+
+  // Admin save
+  adminForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const newCfg = {
+      formUrl: formUrlInput.value.trim(),
+      targetLat: Number(targetLatInput.value),
+      targetLng: Number(targetLngInput.value),
+      radiusMeters: Number(radiusMetersInput.value),
+      adminNote: adminNoteInput.value.trim()
+    };
+    try {
+      if (!newCfg.formUrl || !/^https?:\/\//i.test(newCfg.formUrl)) throw new Error('Provide a valid HTTPS URL for the Microsoft Form.');
+      if (Number.isNaN(newCfg.targetLat) || Number.isNaN(newCfg.targetLng)) throw new Error('Latitude and Longitude must be valid numbers.');
+      if (newCfg.radiusMeters <= 0 || Number.isNaN(newCfg.radiusMeters)) throw new Error('Radius must be a positive number.');
+      saveConfig(newCfg);
+      cfg = newCfg;
+      refreshCfgView();
+      setStatus(adminStatus, 'Configuration saved successfully.', 'ok');
+      checkLocationAndGate();
+    } catch (err) { setStatus(adminStatus, err.message, 'err'); }
+  });
+
+  // Auto-unlock if stored (admin convenience)
+  if (localStorage.getItem(adminFlagKey) === '1') {
+    adminGate.classList.add('hidden');
+    adminForm.classList.remove('hidden');
+  }
+
+  // Init
+  refreshCfgView();
+  checkLocationAndGate();
 </script>
 </body>
 </html>
